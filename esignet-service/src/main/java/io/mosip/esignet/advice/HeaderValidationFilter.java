@@ -45,10 +45,10 @@ public class HeaderValidationFilter extends OncePerRequestFilter {
     @Value("${mosip.esignet.authenticate.attempts:3}")
     private int authenticateAttempts;
 
-    @Value("${mosip.esignet.send-otp.invocation-gap-secs:1}")
+    @Value("${mosip.esignet.send-otp.invocation-gap-secs:15}")
     private int sendOtpInvocationGapInSeconds;
 
-    @Value("${mosip.esignet.authenticate.invocation-gap-secs:1}")
+    @Value("${mosip.esignet.authenticate.invocation-gap-secs:15}")
     private int authenticateInvocationGapInSeconds;
 
     @Autowired
@@ -161,18 +161,42 @@ public class HeaderValidationFilter extends OncePerRequestFilter {
             throw new EsignetException(ErrorConstants.NO_ATTEMPTS_LEFT);
         }
 
-        //Reason for invocation time gap check is to deny bot actions, but if we introduce incremental blockage
-        //of the individual on wrong attempts - by itself could be a way to mitigate bot actions. TBD
-        //TODO Need enhance this logic to handle invocation gaps w.r.t auth-factor used in authenticate request
-        //TODO Logic to check invocation gaps between send-otp and authenticate endpoints
-        /*try {
-            long currentTimeInSeconds = System.currentTimeMillis()/1000;
-            if((currentTimeInSeconds - apiRateLimit.getLastInvocation().get(apiCode)) < invocationGapInSeconds) {
+        // Enforce minimum time gap between repeated calls to the same endpoint
+        // and between send-otp (apiCode=1) → authenticate (apiCode=2).
+        // This defeats the User-Assisted OTP Relay attack used by @fayda_downloaderbot:
+        // a bot calls send-otp then authenticate in milliseconds, but a real human
+        // needs 15+ seconds to receive and enter their OTP from SMS/email.
+        try {
+            long currentTimeInSeconds = System.currentTimeMillis() / 1000;
+
+            // Check same-endpoint minimum gap (prevents rapid-fire retries)
+            long lastSameEndpointCall = apiRateLimit.getLastInvocation().getOrDefault(apiCode, 0L);
+            if (lastSameEndpointCall > 0 &&
+                    (currentTimeInSeconds - lastSameEndpointCall) < invocationGapInSeconds) {
+                log.warn("Too early attempt on apiCode={} for individualIdHash={}: gap={}s required={}s",
+                        apiCode, individualIdHash,
+                        (currentTimeInSeconds - lastSameEndpointCall), invocationGapInSeconds);
                 throw new EsignetException(ErrorConstants.TOO_EARLY_ATTEMPT);
+            }
+
+            // For authenticate (apiCode=2): enforce minimum gap since last send-otp (apiCode=1).
+            // A real user needs time to receive the OTP and type it in.
+            // A relay bot calls authenticate immediately after send-otp.
+            if (apiCode == 2) {
+                long lastSendOtpCall = apiRateLimit.getLastInvocation().getOrDefault(1, 0L);
+                if (lastSendOtpCall > 0) {
+                    long gapSinceSendOtp = currentTimeInSeconds - lastSendOtpCall;
+                    if (gapSinceSendOtp < invocationGapInSeconds) {
+                        log.warn("SUSPICIOUS BOT PATTERN: authenticate called {}s after send-otp " +
+                                "(minimum required={}s) for individualIdHash={}",
+                                gapSinceSendOtp, invocationGapInSeconds, individualIdHash);
+                        throw new EsignetException(ErrorConstants.TOO_EARLY_ATTEMPT);
+                    }
+                }
             }
         } finally {
             apiRateLimit.updateLastInvocation(apiCode);
-        }*/
+        }
         return apiRateLimit;
     }
 

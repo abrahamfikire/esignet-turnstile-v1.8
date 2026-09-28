@@ -19,7 +19,6 @@ import io.mosip.esignet.entity.ConsentHistory;
 import io.mosip.esignet.mapper.ConsentMapper;
 import io.mosip.esignet.repository.ConsentHistoryRepository;
 import io.mosip.esignet.repository.ConsentRepository;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -32,9 +31,12 @@ import java.time.ZoneOffset;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @Service
-@Slf4j
 public class ConsentServiceImpl implements ConsentService {
+    private static final Logger log = LoggerFactory.getLogger(ConsentServiceImpl.class);
 
     @Autowired
     private  ConsentRepository consentRepository;

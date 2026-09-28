@@ -8,6 +8,7 @@ package io.mosip.esignet.services;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.mosip.esignet.altcha.AltchaChallengeService;
+import io.mosip.esignet.turnstile.TurnstileVerificationService;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.nimbusds.jwt.JWT;
@@ -104,6 +105,9 @@ public class AuthorizationHelperService {
     private AltchaChallengeService altchaChallengeService;
 
     @Autowired
+    private TurnstileVerificationService turnstileVerificationService;
+
+    @Autowired
     private ClaimsHelperService claimsHelperService;
 
     @Autowired
@@ -150,6 +154,11 @@ public class AuthorizationHelperService {
     }
 
     protected void validateCaptchaToken(String captchaToken) {
+        if ("turnstile".equalsIgnoreCase(captchaProvider)) {
+            if (!turnstileVerificationService.verifyToken(captchaToken))
+                throw new EsignetException(INVALID_CAPTCHA);
+            return;
+        }
         validateCaptchaToken(captchaToken, "altcha".equalsIgnoreCase(captchaProvider));
     }
 

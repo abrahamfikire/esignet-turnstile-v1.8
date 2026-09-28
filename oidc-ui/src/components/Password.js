@@ -14,6 +14,7 @@ import FormAction from './FormAction';
 import InputWithImage from './InputWithImage';
 import ReCAPTCHA from 'react-google-recaptcha';
 import AltchaWidget from './AltchaWidget';
+import TurnstileWidget from './TurnstileWidget';
 import ErrorBanner from '../common/ErrorBanner';
 import {
   getCaptchaChallengeUrl,
@@ -517,6 +518,13 @@ export default function Password({
               {captchaProvider === 'altcha' ? (
                 <AltchaWidget
                   challengeUrl={captchaChallengeUrl}
+                  language={i18n.language}
+                  onVerified={handleCaptchaChange}
+                  widgetKey={captchaWidgetKey}
+                />
+              ) : captchaProvider === 'turnstile' ? (
+                <TurnstileWidget
+                  siteKey={captchaSiteKey}
                   language={i18n.language}
                   onVerified={handleCaptchaChange}
                   widgetKey={captchaWidgetKey}

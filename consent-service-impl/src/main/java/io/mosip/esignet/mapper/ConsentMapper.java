@@ -70,7 +70,7 @@ public abstract class ConsentMapper {
      * Older MOSIP/Fayda stored userinfo as Map&lt;String, Map&gt; (object per claim).
      * eSignet 1.8 expects Map&lt;String, List&lt;Map&gt;&gt;. Wrap a single object into a one-element list.
      */
-    Claims tryNormalizeLegacyClaims(String claims) {
+    private Claims tryNormalizeLegacyClaims(String claims) {
         try {
             JsonNode root = objectMapper.readTree(claims);
             if (root == null || !root.isObject()) {

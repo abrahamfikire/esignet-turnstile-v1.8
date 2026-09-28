@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { buttonTypes, configurationKeys } from '../constants/clientConstants';
 import ReCAPTCHA from 'react-google-recaptcha';
 import AltchaWidget from './AltchaWidget';
+import TurnstileWidget from './TurnstileWidget';
 import {
   getCaptchaChallengeUrl,
   getCaptchaProvider,
@@ -443,6 +444,13 @@ export default function OtpGet({
                 {captchaProvider === 'altcha' ? (
                   <AltchaWidget
                     challengeUrl={captchaChallengeUrl}
+                    language={i18n.language}
+                    onVerified={handleCaptchaChange}
+                    widgetKey={captchaWidgetKey}
+                  />
+                ) : captchaProvider === 'turnstile' ? (
+                  <TurnstileWidget
+                    siteKey={captchaSiteKey}
                     language={i18n.language}
                     onVerified={handleCaptchaChange}
                     widgetKey={captchaWidgetKey}
